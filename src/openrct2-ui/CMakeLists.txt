@@ -139,6 +139,7 @@ target_compile_definitions(openrct2 PUBLIC
     # If OpenGL is enabled then we want to dynamically look up symbols.
     # If its disabled and somehow we magically end up linking to OpenGL we don't want look up the OpenGL symbols????
     $<IF:$<BOOL:${DISABLE_OPENGL}>,DISABLE_OPENGL,OPENGL_NO_LINK>
+    $<$<BOOL:${DISABLE_SDLGPU}>:DISABLE_SDLGPU>
 )
 
 if (MSVC)

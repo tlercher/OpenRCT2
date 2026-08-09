@@ -487,6 +487,9 @@ namespace OpenRCT2::Ui::Windows
 #ifndef DISABLE_OPENGL
         STR_DRAWING_ENGINE_OPENGL,
 #endif
+#ifndef DISABLE_SDLGPU
+        STR_DRAWING_ENGINE_SDL_GPU,
+#endif
     };
 
 #pragma endregion
