@@ -255,6 +255,15 @@ namespace OpenRCT2::Platform
         return false;
     }
 
+    bool NeonAvailable()
+    {
+#ifdef __ARM_NEON
+        return true;
+#else
+        return false;
+#endif
+    }
+
     bool SteamPaths::isSteamPresent() const
     {
         return !roots.empty();

@@ -315,7 +315,12 @@ static void OverrideElementOffsets(size_t index, G1Element& element)
 
 static auto GetMaskFunction()
 {
-    if (Platform::AVX2Available())
+    if (Platform::NeonAvailable())
+    {
+        LOG_VERBOSE("registering NEON mask function");
+        return MaskNeon;
+    }
+    else if (Platform::AVX2Available())
     {
         LOG_VERBOSE("registering AVX2 mask function");
         return MaskAvx2;
