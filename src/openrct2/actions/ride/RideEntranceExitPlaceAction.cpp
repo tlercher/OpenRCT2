@@ -19,6 +19,7 @@
 #include "../../world/Entrance.h"
 #include "../../world/Map.h"
 #include "../../world/MapAnimation.h"
+#include "../../world/NavigationGraph.h"
 #include "../../world/QuarterTile.h"
 #include "../../world/Wall.h"
 #include "../../world/tile_element/EntranceElement.h"
@@ -235,6 +236,7 @@ namespace OpenRCT2::GameActions
         FootpathUpdateQueueChains();
 
         MapInvalidateTileFull(_loc);
+        Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY{ _loc });
 
         return res;
     }

@@ -17,6 +17,7 @@
 #include "../../world/Footpath.h"
 #include "../../world/Location.hpp"
 #include "../../world/Map.h"
+#include "../../world/NavigationGraph.h"
 #include "../../world/TileElementsView.h"
 #include "../../world/tile_element/BannerElement.h"
 #include "../../world/tile_element/PathElement.h"
@@ -99,6 +100,7 @@ namespace OpenRCT2::GameActions
             }
             FootpathRemoveEdgesAt(_loc, footpathElement);
             MapInvalidateTileFull(_loc);
+            Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY{ _loc });
             TileElementRemove(footpathElement);
             FootpathUpdateQueueChains();
 

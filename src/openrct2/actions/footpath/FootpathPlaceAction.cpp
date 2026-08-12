@@ -24,6 +24,7 @@
 #include "../../world/Footpath.h"
 #include "../../world/Location.hpp"
 #include "../../world/Map.h"
+#include "../../world/NavigationGraph.h"
 #include "../../world/QuarterTile.h"
 #include "../../world/TileElementsView.h"
 #include "../../world/Wall.h"
@@ -417,6 +418,7 @@ namespace OpenRCT2::GameActions
                     entranceElement->setSurfaceEntryIndex(_type);
                 }
                 MapInvalidateTileFull(_loc);
+                Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY{ _loc });
             }
         }
         else
@@ -520,6 +522,7 @@ namespace OpenRCT2::GameActions
 
         FootpathUpdateQueueChains();
         MapInvalidateTileFull(_loc);
+        Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY{ _loc });
     }
 
     PathElement* FootpathPlaceAction::MapGetFootpathElementWithSlope(const CoordsXYZ& footpathPos, FootpathSlope slope) const

@@ -16,6 +16,7 @@
 #include "../../management/Finance.h"
 #include "../../world/Location.hpp"
 #include "../../world/Map.h"
+#include "../../world/NavigationGraph.h"
 #include "../../world/TileElementsView.h"
 #include "../../world/tile_element/WallElement.h"
 
@@ -86,6 +87,7 @@ namespace OpenRCT2::GameActions
 
         wallElement->removeBannerEntry();
         MapInvalidateTileZoom1({ _loc, wallElement->getBaseZ(), (wallElement->getBaseZ()) + 72 });
+        Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY(_loc));
         TileElementRemove(wallElement);
 
         return res;

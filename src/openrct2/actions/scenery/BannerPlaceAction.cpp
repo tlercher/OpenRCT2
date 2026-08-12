@@ -19,6 +19,7 @@
 #include "../../world/Footpath.h"
 #include "../../world/Map.h"
 #include "../../world/MapAnimation.h"
+#include "../../world/NavigationGraph.h"
 #include "../../world/TileElementsView.h"
 #include "../../world/tile_element/BannerElement.h"
 #include "../../world/tile_element/PathElement.h"
@@ -156,6 +157,7 @@ namespace OpenRCT2::GameActions
 
         MapInvalidateTileFull(_loc);
         MapAnimations::MarkTileForInvalidation(TileCoordsXY(_loc));
+        Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY(_loc));
 
         res.cost = bannerEntry->price;
         return res;

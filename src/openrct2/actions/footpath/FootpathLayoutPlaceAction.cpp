@@ -20,6 +20,7 @@
 #include "../../world/Footpath.h"
 #include "../../world/Location.hpp"
 #include "../../world/Map.h"
+#include "../../world/NavigationGraph.h"
 #include "../../world/QuarterTile.h"
 #include "../../world/tile_element/EntranceElement.h"
 #include "../../world/tile_element/PathElement.h"
@@ -257,6 +258,7 @@ namespace OpenRCT2::GameActions
                     entranceElement->setSurfaceEntryIndex(_type);
                 }
                 MapInvalidateTileFull(_loc);
+                Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY{ _loc });
             }
         }
         else
@@ -286,6 +288,7 @@ namespace OpenRCT2::GameActions
             pathElement->setGhost(GetFlags().has(CommandFlag::ghost));
 
             MapInvalidateTileFull(_loc);
+            Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY{ _loc });
         }
 
         // Prevent the place sound from being spammed

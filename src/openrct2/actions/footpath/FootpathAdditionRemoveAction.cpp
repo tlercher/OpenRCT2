@@ -17,6 +17,7 @@
 #include "../../world/Footpath.h"
 #include "../../world/Location.hpp"
 #include "../../world/Map.h"
+#include "../../world/NavigationGraph.h"
 #include "../../world/tile_element/PathElement.h"
 
 namespace OpenRCT2::GameActions
@@ -106,6 +107,7 @@ namespace OpenRCT2::GameActions
 
         pathElement->setAddition(0);
         MapInvalidateTileFull(_loc);
+        Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY{ _loc });
 
         auto res = Result();
         res.position = _loc;

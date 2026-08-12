@@ -20,6 +20,7 @@
 #include "../../world/Footpath.h"
 #include "../../world/Map.h"
 #include "../../world/MapAnimation.h"
+#include "../../world/NavigationGraph.h"
 #include "../../world/Park.h"
 #include "../../world/QuarterTile.h"
 #include "../../world/tile_element/EntranceElement.h"
@@ -184,6 +185,7 @@ namespace OpenRCT2::GameActions
             Park::UpdateFences({ entranceLoc.x, entranceLoc.y + kCoordsXYStep });
 
             MapInvalidateTile({ entranceLoc, entranceElement->getBaseZ(), entranceElement->getClearanceZ() });
+            Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY(entranceLoc));
 
             if (index == 0)
             {

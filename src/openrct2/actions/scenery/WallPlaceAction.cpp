@@ -26,6 +26,7 @@
 #include "../../world/ConstructionClearance.h"
 #include "../../world/Map.h"
 #include "../../world/MapAnimation.h"
+#include "../../world/NavigationGraph.h"
 #include "../../world/TileElementsView.h"
 #include "../../world/Wall.h"
 #include "../../world/tile_element/LargeSceneryElement.h"
@@ -390,6 +391,7 @@ namespace OpenRCT2::GameActions
 
         MapAnimations::MarkTileForInvalidation(TileCoordsXY(targetLoc));
         MapInvalidateTileZoom1({ _loc, wallElement->getBaseZ(), wallElement->getBaseZ() + 72 });
+        Navigation::GetNavigationGraph().MarkRegionDirty(TileCoordsXY(targetLoc));
 
         res.cost = wallEntry->price;
 
