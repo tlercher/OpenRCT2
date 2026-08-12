@@ -1969,11 +1969,28 @@ namespace OpenRCT2::PathFinding
             peep.checkCantFindRide();
             peep.checkCantFindExit();
         }
-        else
+        else if (edges & (1 << direction))
         {
             /* Not a dead end. Remove edge peep came from so peep will
              * continue on rather than going back where it came from */
             edges &= ~(1 << direction);
+        }
+        else if (std::popcount(edges) <= 2)
+        {
+            /* peep.PeepDirection's reverse isn't actually one of this tile's edges - it can be stale
+             * relative to the tile, e.g. a peep resuming movement after PeepState::watching still
+             * carries whatever direction it had before it stopped. A tile with 2 or fewer edges is
+             * never a real decision point (matches the navmesh graph's own junction definition, see
+             * NavigationGraph.cpp's ClassifyStructural); since neither edge is meaningfully "backwards"
+             * here, just take one instead of falling through to the multi-choice pathfinding call
+             * below, which would otherwise route a plain corridor tile into NavmeshChooseDirection -
+             * a tile the navmesh graph never indexed as a node, forcing an expensive fallback search. */
+            direction = Numerics::bitScanForward(edges);
+            LogPathfinding(
+                &peep, "Completed CalculateNextDestination - stale backtrack direction on non-junction tile: %d.",
+                direction);
+
+            return PeepMoveOneTile(direction, peep);
         }
 
         direction = Numerics::bitScanForward(edges);

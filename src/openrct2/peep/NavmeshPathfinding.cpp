@@ -81,10 +81,15 @@ namespace OpenRCT2::PathFinding
         auto node = graph.FindNodeAt(loc);
         if (node.IsNull())
         {
-            // Shouldn't normally happen (real decisions only occur at junctions, which are always
-            // graph nodes) - defensively fall back to the old algorithm at full budget rather than
-            // give up, e.g. in case of an edit-race with the once-per-tick graph rebuild.
-            return ChooseDirection(loc, rawGoal, peep, ignoreForeignQueues, queueRideIndex);
+            // Can legitimately happen on an ordinary non-junction tile: CalculateNextDestination's
+            // "only one edge left after removing where I came from" check assumes peep.PeepDirection's
+            // reverse is always one of the tile's own edges, which isn't true right after a peep
+            // resumes moving with a stale direction (e.g. leaving PeepState::watching) - it then still
+            // looks like "multiple directions to choose from" on a plain thin corridor tile that was
+            // never registered as a graph node. Also covers the rarer edit-race with the once-per-tick
+            // graph rebuild. Either way this only needs to resolve the immediate tile, not a
+            // park-spanning route, so bound it the same as the foreign-queue/patrol fallback below.
+            return ChooseDirection(loc, rawGoal, peep, ignoreForeignQueues, queueRideIndex, kFallbackTileBudget);
         }
 
         auto* table = Navigation::GetGoalTableCache().GetOrBuild(goalId, graph, getGameState());
