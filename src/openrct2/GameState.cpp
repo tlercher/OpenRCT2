@@ -32,6 +32,8 @@
 #include "windows/Intent.h"
 #include "world/Map.h"
 #include "world/MapAnimation.h"
+#include "world/NavigationGraph.h"
+#include "world/NavigationGraphGoals.h"
 #include "world/Park.h"
 #include "world/Scenery.h"
 
@@ -68,6 +70,11 @@ namespace OpenRCT2
         RideInitAll();
         gameState.entities.ResetAllEntities();
         UpdateConsolidatedPatrolAreas();
+        // Deferred: the actual rebuild happens on the first per-tick RefreshGoalNodesAndGraph call
+        // (GameState.cpp's gameStateUpdateLogic), by which point tileElements/rides/park data for
+        // this load are fully populated. Marking dirty now just ensures a stale graph from a
+        // previously loaded park doesn't linger into this one.
+        Navigation::GetNavigationGraph().MarkAllDirty();
         ResetDate();
         Weather::reset();
         News::InitQueue(gameState);
@@ -316,6 +323,7 @@ namespace OpenRCT2
         ContextBroadcastIntent(&removeProvisionalIntent);
 
         MapUpdatePathWideFlags();
+        Navigation::RefreshGoalNodesAndGraph(Navigation::GetNavigationGraph(), gameState);
         PeepUpdateAll();
         auto restoreProvisionalIntent = Intent(INTENT_ACTION_RESTORE_PROVISIONAL_ELEMENTS);
         ContextBroadcastIntent(&restoreProvisionalIntent);
