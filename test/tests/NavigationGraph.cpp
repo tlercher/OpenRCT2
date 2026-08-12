@@ -162,7 +162,7 @@ TEST_P(NavmeshReachabilityTest, ReachabilityMatchesOldAlgorithm)
                          "be called there directly, but the navmesh graph has nothing to look up";
     }
 
-    Direction direction = PathFinding::NavmeshChooseDirection(scenario.start, goalId);
+    Direction direction = PathFinding::NavmeshTableLookup(scenario.start, goalId);
     bool reachable = (direction != kInvalidDirection);
 
     EXPECT_EQ(reachable, scenario.expectedReachable)

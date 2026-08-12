@@ -21,8 +21,13 @@ namespace OpenRCT2
 
 namespace OpenRCT2::PathFinding
 {
+    // maxTilesCheckedOverride: 0 (default) uses the normal staff/guest budget (50000/15000 tiles).
+    // A positive value overrides it - used by NavmeshPathfinding's bounded local-search fallback
+    // (plan §9), which only needs to resolve a small local ambiguity (a foreign queue or patrol
+    // boundary immediately ahead), not a park-spanning route.
     Direction ChooseDirection(
-        const TileCoordsXYZ& loc, const TileCoordsXYZ& goal, Peep& peep, bool ignoreForeignQueues, RideId queueRideIndex);
+        const TileCoordsXYZ& loc, const TileCoordsXYZ& goal, Peep& peep, bool ignoreForeignQueues, RideId queueRideIndex,
+        int32_t maxTilesCheckedOverride = 0);
 
     // Exposed for OpenRCT2::Navigation's graph builder, which reuses this exact junction
     // classification so navmesh nodes match what the (fallback) heuristic search considers a junction.
