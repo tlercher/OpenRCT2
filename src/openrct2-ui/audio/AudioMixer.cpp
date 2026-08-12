@@ -10,6 +10,7 @@
 #include "AudioMixer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 #include <openrct2/OpenRCT2.h>
 #include <openrct2/config/Config.h>
