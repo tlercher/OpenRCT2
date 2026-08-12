@@ -737,17 +737,8 @@ namespace OpenRCT2
                 Navigation::NavPeepClass::staff, CurrentRide, static_cast<uint8_t>(CurrentRideStation.ToUnderlying()), 0
             };
 
-            Direction pathfindDirection;
-            if (PathFinding::IsLiveModeEnabled())
-            {
-                pathfindDirection = PathFinding::NavmeshChooseDirection(
-                    navLoc, goalId, goalPos, *this, false, RideId::GetNull());
-            }
-            else
-            {
-                pathfindDirection = PathFinding::ChooseDirection(navLoc, goalPos, *this, false, RideId::GetNull());
-                PathFinding::ShadowCompareChooseDirection(*this, navLoc, goalId, pathfindDirection);
-            }
+            Direction pathfindDirection = PathFinding::NavmeshChooseDirection(
+                navLoc, goalId, goalPos, *this, false, RideId::GetNull());
 
             if (pathfindDirection == kInvalidDirection)
             {

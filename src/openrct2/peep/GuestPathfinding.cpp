@@ -1597,16 +1597,7 @@ namespace OpenRCT2::PathFinding
         auto loc = TileCoordsXYZ{ peep.NextLoc };
         Navigation::NavGoalId goalId{ Navigation::NavGoalKind::parkEntranceAny, Navigation::NavPeepClass::guest };
 
-        Direction chosenDirection;
-        if (IsLiveModeEnabled())
-        {
-            chosenDirection = NavmeshChooseDirection(loc, goalId, goalPos, peep, true, RideId::GetNull());
-        }
-        else
-        {
-            chosenDirection = ChooseDirection(loc, goalPos, peep, true, RideId::GetNull());
-            ShadowCompareChooseDirection(peep, loc, goalId, chosenDirection);
-        }
+        Direction chosenDirection = NavmeshChooseDirection(loc, goalId, goalPos, peep, true, RideId::GetNull());
 
         if (chosenDirection == kInvalidDirection)
             return GuestPathfindAimless(peep, edges);
@@ -1663,15 +1654,7 @@ namespace OpenRCT2::PathFinding
         auto loc = TileCoordsXYZ{ peep.NextLoc };
         Navigation::NavGoalId goalId{ Navigation::NavGoalKind::peepSpawnAny, Navigation::NavPeepClass::guest };
 
-        if (IsLiveModeEnabled())
-        {
-            direction = NavmeshChooseDirection(loc, goalId, goalPos, peep, true, RideId::GetNull());
-        }
-        else
-        {
-            direction = ChooseDirection(loc, goalPos, peep, true, RideId::GetNull());
-            ShadowCompareChooseDirection(peep, loc, goalId, direction);
-        }
+        direction = NavmeshChooseDirection(loc, goalId, goalPos, peep, true, RideId::GetNull());
 
         if (direction == kInvalidDirection)
             return GuestPathfindAimless(peep, edges);
@@ -1726,7 +1709,7 @@ namespace OpenRCT2::PathFinding
         uint16_t entranceIndex = FindParkEntranceIndex(entranceGoal);
 
         Direction chosenDirection;
-        if (IsLiveModeEnabled() && entranceIndex != 0xFFFF)
+        if (entranceIndex != 0xFFFF)
         {
             Navigation::NavGoalId goalId{ Navigation::NavGoalKind::parkEntrance, Navigation::NavPeepClass::guest,
                                            RideId::GetNull(), 0, entranceIndex };
@@ -1734,13 +1717,9 @@ namespace OpenRCT2::PathFinding
         }
         else
         {
+            // entranceGoal doesn't match any current park entrance (edit race); the navmesh table
+            // has nothing to key on, fall back to the old algorithm directly.
             chosenDirection = ChooseDirection(loc, entranceGoal, peep, true, RideId::GetNull());
-            if (IsShadowModeEnabled() && entranceIndex != 0xFFFF)
-            {
-                Navigation::NavGoalId goalId{ Navigation::NavGoalKind::parkEntrance, Navigation::NavPeepClass::guest,
-                                               RideId::GetNull(), 0, entranceIndex };
-                ShadowCompareChooseDirection(peep, loc, goalId, chosenDirection);
-            }
         }
 
         if (chosenDirection == kInvalidDirection)
@@ -2166,19 +2145,13 @@ namespace OpenRCT2::PathFinding
         Navigation::NavGoalId goalId{ Navigation::NavGoalKind::rideStationEntrance, Navigation::NavPeepClass::guest,
                                        rideIndex, static_cast<uint8_t>(closestStationNum.ToUnderlying()), 0 };
 
-        if (IsLiveModeEnabled() && canUseNavmesh)
+        if (canUseNavmesh)
         {
             direction = NavmeshChooseDirection(peepLoc, goalId, loc, peep, true, rideIndex);
         }
         else
         {
             direction = ChooseDirection(peepLoc, loc, peep, true, rideIndex);
-            // Note: the old algorithm's goal here is the queue's far end (`loc`, after
-            // GetRideQueueEnd offsets past queue tiles), whereas the navmesh goal table for
-            // rideStationEntrance is seeded at the station's entrance tile itself - divergence
-            // logged here reflects that goal-tile difference too, not just algorithmic disagreement.
-            if (IsShadowModeEnabled() && canUseNavmesh)
-                ShadowCompareChooseDirection(peep, peepLoc, goalId, direction);
         }
 
         if (direction == kInvalidDirection)

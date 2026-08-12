@@ -9,7 +9,6 @@
 
 #include "NavmeshPathfinding.h"
 
-#include "../Diagnostic.h"
 #include "../GameState.h"
 #include "../entity/Peep.h"
 #include "../entity/Staff.h"
@@ -25,9 +24,6 @@ namespace OpenRCT2::PathFinding
 {
     namespace
     {
-        bool gShadowModeEnabled = false;
-        bool gLiveModeEnabled = true;
-
         // Bounded local-search budget for the fallback path (plan §9): only needs to resolve an
         // immediate local ambiguity (a foreign queue or patrol boundary right ahead), the
         // precomputed table already guarantees a route exists beyond it. Tiny next to the old
@@ -185,42 +181,6 @@ namespace OpenRCT2::PathFinding
         }
 
         return chosenDirection;
-    }
-
-    void ShadowCompareChooseDirection(
-        const Peep& peep, const TileCoordsXYZ& loc, const Navigation::NavGoalId& goalId, Direction oldResult)
-    {
-        if (!gShadowModeEnabled)
-            return;
-
-        Direction newResult = NavmeshTableLookup(loc, goalId);
-        if (newResult == oldResult)
-            return;
-
-        LOG_INFO(
-            "[navmesh-shadow] peep=%u (%s) loc=%d,%d,%d goalKind=%u rideId=%u station=%u old=%d new=%d",
-            peep.id.ToUnderlying(), peep.GetName().c_str(), loc.x, loc.y, loc.z, static_cast<unsigned>(goalId.kind),
-            goalId.rideId.ToUnderlying(), goalId.stationIndex, oldResult, newResult);
-    }
-
-    bool IsShadowModeEnabled()
-    {
-        return gShadowModeEnabled;
-    }
-
-    void SetShadowModeEnabled(bool enabled)
-    {
-        gShadowModeEnabled = enabled;
-    }
-
-    bool IsLiveModeEnabled()
-    {
-        return gLiveModeEnabled;
-    }
-
-    void SetLiveModeEnabled(bool enabled)
-    {
-        gLiveModeEnabled = enabled;
     }
 
 } // namespace OpenRCT2::PathFinding
