@@ -16,12 +16,21 @@ namespace OpenRCT2
 {
     struct Guest;
     struct Peep;
+    struct PathElement;
 } // namespace OpenRCT2
 
 namespace OpenRCT2::PathFinding
 {
     Direction ChooseDirection(
         const TileCoordsXYZ& loc, const TileCoordsXYZ& goal, Peep& peep, bool ignoreForeignQueues, RideId queueRideIndex);
+
+    // Exposed for OpenRCT2::Navigation's graph builder, which reuses this exact junction
+    // classification so navmesh nodes match what the (fallback) heuristic search considers a junction.
+    bool PathIsThinJunction(PathElement* path, const TileCoordsXYZ& loc);
+
+    // Exposed for OpenRCT2::Navigation's graph builder, to determine which raw edges a banner
+    // blocks for guests (ignoreBanners=false) vs. staff (ignoreBanners=true).
+    int32_t PathGetPermittedEdges(bool ignoreBanners, const PathElement* pathElement);
 
     int32_t CalculateNextDestination(Guest& peep);
 

@@ -186,7 +186,7 @@ namespace OpenRCT2::PathFinding
     /**
      * Gets the connected edges of a path that are permitted (i.e. no 'no entry' signs)
      */
-    static int32_t PathGetPermittedEdges(bool ignoreBanners, const PathElement* pathElement)
+    int32_t PathGetPermittedEdges(bool ignoreBanners, const PathElement* pathElement)
     {
         return BannerClearPathEdges(ignoreBanners, pathElement, pathElement->getEdgesAndCorners()) & 0x0F;
     }
@@ -586,7 +586,7 @@ namespace OpenRCT2::PathFinding
      * since entrances and ride queues coming off a path should not result in
      * the path being considered a junction.
      */
-    static bool PathIsThinJunction(PathElement* path, const TileCoordsXYZ& loc)
+    bool PathIsThinJunction(PathElement* path, const TileCoordsXYZ& loc)
     {
         PROFILED_FUNCTION();
 
