@@ -74,8 +74,28 @@ namespace OpenRCT2::Navigation
         // Mirrors OpenRCT2::PathFinding::FootpathElementNextInDirection (GuestPathfinding.cpp), but
         // returns the resolved element/location instead of a coarse classification, since the graph
         // builder needs to keep walking the actual tile chain rather than stop at the first result.
-        std::optional<StepResult> StepPath(TileCoordsXYZ loc, Direction direction)
+        // `terminals` lets a step land on a non-path goal tile (ride entrance/exit, shop, park
+        // entrance) registered via NavigationGraph::SetGoalTerminals — see NavGoalTerminal's doc
+        // comment for why those can't just be found via TileElementsView<PathElement>.
+        std::optional<StepResult> StepPath(
+            TileCoordsXYZ loc, Direction direction,
+            const std::unordered_map<TileCoordsXYZ, std::vector<std::pair<Direction, TileCoordsXYZ>>, TileCoordsXYZHash>&
+                terminals)
         {
+            if (auto it = terminals.find(loc); it != terminals.end())
+            {
+                for (auto& [approachDirection, goalLoc] : it->second)
+                {
+                    if (approachDirection == direction)
+                    {
+                        StepResult result;
+                        result.loc = goalLoc;
+                        result.element = nullptr;
+                        return result;
+                    }
+                }
+            }
+
             const PathElement* fromElement = FindFirstPathElementAt(loc);
             if (fromElement != nullptr && fromElement->IsSloped() && fromElement->GetSlopeDirection() == direction)
             {
@@ -106,6 +126,15 @@ namespace OpenRCT2::Navigation
     void NavigationGraph::SetForcedNodeLocations(std::unordered_set<TileCoordsXYZ, TileCoordsXYZHash> locations)
     {
         _forcedNodeLocations = std::move(locations);
+    }
+
+    void NavigationGraph::SetGoalTerminals(std::vector<NavGoalTerminal> terminals)
+    {
+        _goalTerminalsByApproach.clear();
+        for (auto& terminal : terminals)
+        {
+            _goalTerminalsByApproach[terminal.approachLoc].emplace_back(terminal.approachDirection, terminal.goalLoc);
+        }
     }
 
     void NavigationGraph::MarkRegionDirty(const TileCoordsXY& tileLoc)
@@ -186,8 +215,26 @@ namespace OpenRCT2::Navigation
         _regionRows = (static_cast<uint32_t>(mapSize.y) + kRegionSize - 1) / kRegionSize;
         _regions.assign(static_cast<size_t>(_regionCols) * _regionRows, NavRegion{});
 
-        // Pass 1: register every structural node (junction / dead-end / wide-entry) and every forced
-        // goal-tile node, so pass 2 can terminate chain walks by a simple nodeByLocation lookup.
+        auto registerNode = [&](const TileCoordsXYZ& loc, NavNodeKind kind) {
+            if (_nodeByLocation.contains(loc))
+                return; // already registered (e.g. overlaid path elements at the same tile)
+
+            NavNode node;
+            node.location = loc;
+            node.kind = kind;
+            node.regionId = static_cast<uint16_t>(RegionIdFor(TileCoordsXY{ loc.x, loc.y }, _regionCols));
+
+            NavNodeId id{ static_cast<uint32_t>(_nodes.size()) };
+            _nodes.push_back(node);
+            _nodeByLocation.emplace(loc, id);
+            if (node.regionId < _regions.size())
+                _regions[node.regionId].nodeIds.push_back(id);
+        };
+
+        // Pass 1: register every structural node (junction / dead-end / wide-entry), every forced
+        // path-tile goal (e.g. a peep spawn standing on a path), and every non-path goal terminal
+        // (ride entrance/exit, shop, park entrance — see NavGoalTerminal), so pass 2 can terminate
+        // chain walks by a simple nodeByLocation lookup.
         for (int32_t y = 0; y < mapSize.y; y++)
         {
             for (int32_t x = 0; x < mapSize.x; x++)
@@ -203,21 +250,16 @@ namespace OpenRCT2::Navigation
                     if (!kind.has_value() && !isForcedGoal)
                         continue; // ordinary corridor tile, not a node
 
-                    if (_nodeByLocation.contains(loc))
-                        continue; // already registered (e.g. overlaid path elements at the same tile)
-
-                    NavNode node;
-                    node.location = loc;
-                    node.kind = kind.value_or(NavNodeKind::goal);
-                    node.regionId = static_cast<uint16_t>(RegionIdFor(TileCoordsXY{ x, y }, _regionCols));
-
-                    NavNodeId id{ static_cast<uint32_t>(_nodes.size()) };
-                    _nodes.push_back(node);
-                    _nodeByLocation.emplace(loc, id);
-                    if (node.regionId < _regions.size())
-                        _regions[node.regionId].nodeIds.push_back(id);
+                    registerNode(loc, kind.value_or(NavNodeKind::goal));
                 }
             }
+        }
+
+        for (auto& [approachLoc, entries] : _goalTerminalsByApproach)
+        {
+            (void)approachLoc;
+            for (auto& entry : entries)
+                registerNode(entry.second, NavNodeKind::goal);
         }
 
         // Pass 2: for every node that isn't a wide-entry (wide areas hand off to local search rather
@@ -238,7 +280,8 @@ namespace OpenRCT2::Navigation
 
             const PathElement* startElement = FindFirstPathElementAt(node.location);
             if (startElement == nullptr)
-                continue; // defensive; shouldn't happen, tile was just scanned in pass 1
+                continue; // goal-terminal node (ride entrance/exit, shop, park entrance): a terminal
+                          // endpoint has no outgoing edges of its own, it's only ever a `to`, never a `from`.
 
             uint32_t rawEdges = startElement->GetEdges() & 0x0F;
             for (Direction dir : kAllDirections)
@@ -261,7 +304,7 @@ namespace OpenRCT2::Navigation
                 const int32_t guardLimit = mapSize.x + mapSize.y + 4;
                 for (int32_t guard = 0; guard < guardLimit; guard++)
                 {
-                    auto step = StepPath(loc, direction);
+                    auto step = StepPath(loc, direction, _goalTerminalsByApproach);
                     if (!step.has_value())
                         break; // ran off the map / into nothing; discard this edge
 
@@ -290,6 +333,9 @@ namespace OpenRCT2::Navigation
                         toId = it->second;
                         break;
                     }
+
+                    if (step->element == nullptr)
+                        break; // defensive: a terminal hit that wasn't pre-registered as a node; discard edge
 
                     // Corridor tile: continue in whichever of its (exactly 2) raw edges isn't the one
                     // we just arrived from.

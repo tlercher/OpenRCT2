@@ -16,6 +16,7 @@
 #include <span>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace OpenRCT2::Navigation
@@ -94,6 +95,20 @@ namespace OpenRCT2::Navigation
         }
     };
 
+    // A goal tile that is NOT itself a footpath tile (a ride entrance/exit, a shop's track tile, a
+    // park entrance) but is reached by walking off an adjacent path tile in a specific direction —
+    // mirrors how PeepPathfindHeuristicSearch treats TileElementType::entrance/track neighbours as
+    // search-ending "found" results (GuestPathfinding.cpp:774-836), rather than as ordinary path
+    // tiles. NavigationGraphGoals computes these (it owns ride/park domain knowledge); NavigationGraph
+    // just needs to know "standing at approachLoc facing approachDirection reaches goalLoc" so the
+    // chain walker can terminate there like any other node.
+    struct NavGoalTerminal
+    {
+        TileCoordsXYZ approachLoc;
+        Direction approachDirection = kInvalidDirection;
+        TileCoordsXYZ goalLoc;
+    };
+
     // Goal-agnostic navmesh graph over the footpath network. Nodes are junctions, dead ends, wide-path
     // entries, and (externally supplied) goal tiles; chains of ordinary 2-edge "thin" path tiles between
     // nodes are collapsed into single weighted edges. This class knows nothing about peeps, rides, or
@@ -101,10 +116,14 @@ namespace OpenRCT2::Navigation
     class NavigationGraph
     {
     public:
-        // Goal tiles (ride entrances/exits, shops, park entrances, peep spawns) must always be graph
-        // nodes even when they'd otherwise sit on a 2-edge "thin" chain — a Dijkstra table needs a node
-        // to seed/target. NavigationGraphGoals populates this set before (re)building the graph.
+        // Goal tiles that ARE footpath tiles (e.g. a peep spawn standing on a path) must still be
+        // forced to become nodes even when they'd otherwise sit on a 2-edge "thin" chain — a Dijkstra
+        // table needs a node to seed/target. NavigationGraphGoals populates this before (re)building.
         void SetForcedNodeLocations(std::unordered_set<TileCoordsXYZ, TileCoordsXYZHash> locations);
+
+        // Goal tiles that are NOT footpath tiles (ride entrances/exits, shops, park entrances) — see
+        // NavGoalTerminal. NavigationGraphGoals populates this before (re)building.
+        void SetGoalTerminals(std::vector<NavGoalTerminal> terminals);
 
         void MarkRegionDirty(const TileCoordsXY& tileLoc);
         void MarkAllDirty();
@@ -144,6 +163,9 @@ namespace OpenRCT2::Navigation
         std::unordered_map<TileCoordsXYZ, NavNodeId, TileCoordsXYZHash> _nodeByLocation;
         std::vector<NavRegion> _regions;
         std::unordered_set<TileCoordsXYZ, TileCoordsXYZHash> _forcedNodeLocations;
+        // approachLoc -> list of (direction, goalLoc), almost always 0-1 entries per tile in practice.
+        std::unordered_map<TileCoordsXYZ, std::vector<std::pair<Direction, TileCoordsXYZ>>, TileCoordsXYZHash>
+            _goalTerminalsByApproach;
         uint32_t _regionCols = 0;
         uint32_t _regionRows = 0;
         uint32_t _graphVersion = 0;
