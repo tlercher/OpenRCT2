@@ -730,18 +730,23 @@ namespace OpenRCT2
             }
 
             const auto goalPos = TileCoordsXYZ{ location };
-            Direction pathfindDirection = PathFinding::ChooseDirection(
-                TileCoordsXYZ{ NextLoc }, goalPos, *this, false, RideId::GetNull());
+            auto navLoc = TileCoordsXYZ{ NextLoc };
+            bool exitIsNull = ride->getStation(CurrentRideStation).Exit.IsNull();
+            Navigation::NavGoalId goalId{
+                exitIsNull ? Navigation::NavGoalKind::rideStationEntrance : Navigation::NavGoalKind::rideStationExit,
+                Navigation::NavPeepClass::staff, CurrentRide, static_cast<uint8_t>(CurrentRideStation.ToUnderlying()), 0
+            };
 
+            Direction pathfindDirection;
+            if (PathFinding::IsLiveModeEnabled())
             {
-                bool exitIsNull = ride->getStation(CurrentRideStation).Exit.IsNull();
-                PathFinding::ShadowCompareChooseDirection(
-                    *this, TileCoordsXYZ{ NextLoc },
-                    Navigation::NavGoalId{
-                        exitIsNull ? Navigation::NavGoalKind::rideStationEntrance : Navigation::NavGoalKind::rideStationExit,
-                        Navigation::NavPeepClass::staff, CurrentRide, static_cast<uint8_t>(CurrentRideStation.ToUnderlying()),
-                        0 },
-                    pathfindDirection);
+                pathfindDirection = PathFinding::NavmeshChooseDirection(
+                    navLoc, goalId, goalPos, *this, false, RideId::GetNull());
+            }
+            else
+            {
+                pathfindDirection = PathFinding::ChooseDirection(navLoc, goalPos, *this, false, RideId::GetNull());
+                PathFinding::ShadowCompareChooseDirection(*this, navLoc, goalId, pathfindDirection);
             }
 
             if (pathfindDirection == kInvalidDirection)
