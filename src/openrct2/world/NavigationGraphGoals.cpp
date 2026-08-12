@@ -113,7 +113,7 @@ namespace OpenRCT2::Navigation
                     {
                         if (el->isGhost())
                             continue;
-                        RideId rideId = el->GetRideIndex();
+                        RideId rideId = el->getRideIndex();
                         if (rideId.IsNull())
                             continue;
                         Ride* ride = GetRide(rideId);

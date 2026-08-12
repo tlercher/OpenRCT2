@@ -51,10 +51,10 @@ namespace OpenRCT2::Navigation
         // during search on top of this topology (reused later by NavmeshPathfinding, not here).
         std::optional<NavNodeKind> ClassifyStructural(const PathElement* el)
         {
-            if (el->IsWide())
+            if (el->isWide())
                 return NavNodeKind::wideEntry;
 
-            uint8_t numEdges = static_cast<uint8_t>(std::popcount(static_cast<uint32_t>(el->GetEdges())));
+            uint8_t numEdges = static_cast<uint8_t>(std::popcount(static_cast<uint32_t>(el->getEdges())));
             if (numEdges < 2)
                 return NavNodeKind::deadEnd;
             if (numEdges > 2)
@@ -97,7 +97,7 @@ namespace OpenRCT2::Navigation
             }
 
             const PathElement* fromElement = FindFirstPathElementAt(loc);
-            if (fromElement != nullptr && fromElement->IsSloped() && fromElement->GetSlopeDirection() == direction)
+            if (fromElement != nullptr && fromElement->isSloped() && fromElement->getSlopeDirection() == direction)
             {
                 loc.z += 2;
             }
@@ -114,9 +114,9 @@ namespace OpenRCT2::Navigation
                 StepResult result;
                 result.loc = { loc.x, loc.y, el->baseHeight };
                 result.element = el;
-                result.isWide = el->IsWide();
-                result.isQueue = el->IsQueue() && !el->GetRideIndex().IsNull();
-                result.queueRideId = el->IsQueue() ? el->GetRideIndex() : RideId::GetNull();
+                result.isWide = el->isWide();
+                result.isQueue = el->isQueue() && !el->getRideIndex().IsNull();
+                result.queueRideId = el->isQueue() ? el->getRideIndex() : RideId::GetNull();
                 return result;
             }
             return std::nullopt;
@@ -283,7 +283,7 @@ namespace OpenRCT2::Navigation
                 continue; // goal-terminal node (ride entrance/exit, shop, park entrance): a terminal
                           // endpoint has no outgoing edges of its own, it's only ever a `to`, never a `from`.
 
-            uint32_t rawEdges = startElement->GetEdges() & 0x0F;
+            uint32_t rawEdges = startElement->getEdges() & 0x0F;
             for (Direction dir : kAllDirections)
             {
                 if (!(rawEdges & (1u << dir)))
@@ -339,7 +339,7 @@ namespace OpenRCT2::Navigation
 
                     // Corridor tile: continue in whichever of its (exactly 2) raw edges isn't the one
                     // we just arrived from.
-                    uint32_t edges = step->element->GetEdges() & 0x0F;
+                    uint32_t edges = step->element->getEdges() & 0x0F;
                     Direction cameFrom = DirectionReverse(direction);
                     edges &= ~(1u << cameFrom);
                     if (!(PathFinding::PathGetPermittedEdges(false, step->element) & static_cast<int32_t>(edges)))
