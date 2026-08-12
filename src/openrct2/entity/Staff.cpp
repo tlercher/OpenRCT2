@@ -23,7 +23,9 @@
 #include "../object/SmallSceneryEntry.h"
 #include "../paint/tile_element/Paint.TileElement.h"
 #include "../peep/GuestPathfinding.h"
+#include "../peep/NavmeshPathfinding.h"
 #include "../ride/RideData.h"
+#include "../world/NavigationGraphGoals.h"
 #include "../ride/TrackIteration.h"
 #include "../ride/Vehicle.h"
 #include "../scenario/Scenario.h"
@@ -730,6 +732,18 @@ namespace OpenRCT2
             const auto goalPos = TileCoordsXYZ{ location };
             Direction pathfindDirection = PathFinding::ChooseDirection(
                 TileCoordsXYZ{ NextLoc }, goalPos, *this, false, RideId::GetNull());
+
+            {
+                bool exitIsNull = ride->getStation(CurrentRideStation).Exit.IsNull();
+                PathFinding::ShadowCompareChooseDirection(
+                    *this, TileCoordsXYZ{ NextLoc },
+                    Navigation::NavGoalId{
+                        exitIsNull ? Navigation::NavGoalKind::rideStationEntrance : Navigation::NavGoalKind::rideStationExit,
+                        Navigation::NavPeepClass::staff, CurrentRide, static_cast<uint8_t>(CurrentRideStation.ToUnderlying()),
+                        0 },
+                    pathfindDirection);
+            }
+
             if (pathfindDirection == kInvalidDirection)
             {
                 /* Heuristic search failed for all directions.

@@ -19,8 +19,10 @@
 #include "../scenario/Scenario.h"
 #include "../world/Footpath.h"
 #include "../world/Map.h"
+#include "../world/NavigationGraphGoals.h"
 #include "../world/TileElementsView.h"
 #include "../world/Wall.h"
+#include "NavmeshPathfinding.h"
 #include "../world/tile_element/BannerElement.h"
 #include "../world/tile_element/EntranceElement.h"
 #include "../world/tile_element/PathElement.h"
@@ -1592,6 +1594,11 @@ namespace OpenRCT2::PathFinding
         const auto goalPos = TileCoordsXYZ(chosenEntrance.value());
         Direction chosenDirection = ChooseDirection(TileCoordsXYZ{ peep.NextLoc }, goalPos, peep, true, RideId::GetNull());
 
+        ShadowCompareChooseDirection(
+            peep, TileCoordsXYZ{ peep.NextLoc },
+            Navigation::NavGoalId{ Navigation::NavGoalKind::parkEntranceAny, Navigation::NavPeepClass::guest },
+            chosenDirection);
+
         if (chosenDirection == kInvalidDirection)
             return GuestPathfindAimless(peep, edges);
 
@@ -1645,10 +1652,29 @@ namespace OpenRCT2::PathFinding
 
         const auto goalPos = TileCoordsXYZ(peepSpawnLoc);
         direction = ChooseDirection(TileCoordsXYZ{ peep.NextLoc }, goalPos, peep, true, RideId::GetNull());
+
+        ShadowCompareChooseDirection(
+            peep, TileCoordsXYZ{ peep.NextLoc },
+            Navigation::NavGoalId{ Navigation::NavGoalKind::peepSpawnAny, Navigation::NavPeepClass::guest }, direction);
+
         if (direction == kInvalidDirection)
             return GuestPathfindAimless(peep, edges);
 
         return PeepMoveOneTile(direction, peep);
+    }
+
+    // Maps a resolved park entrance tile back to its index in gameState.park.entrances, for
+    // NavGoalKind::parkEntrance (the "sticky" single-entrance goal shadow-mode comparison needs -
+    // multi-source parkEntranceAny doesn't apply once a peep has committed to one specific entrance).
+    static uint16_t FindParkEntranceIndex(const TileCoordsXYZ& entranceGoal)
+    {
+        const auto& entrances = getGameState().park.entrances;
+        for (size_t i = 0; i < entrances.size(); i++)
+        {
+            if (TileCoordsXYZ(entrances[i]) == entranceGoal)
+                return static_cast<uint16_t>(i);
+        }
+        return 0xFFFF;
     }
 
     /**
@@ -1681,6 +1707,20 @@ namespace OpenRCT2::PathFinding
         }
 
         Direction chosenDirection = ChooseDirection(TileCoordsXYZ{ peep.NextLoc }, entranceGoal, peep, true, RideId::GetNull());
+
+        if (IsShadowModeEnabled())
+        {
+            uint16_t entranceIndex = FindParkEntranceIndex(entranceGoal);
+            if (entranceIndex != 0xFFFF)
+            {
+                ShadowCompareChooseDirection(
+                    peep, TileCoordsXYZ{ peep.NextLoc },
+                    Navigation::NavGoalId{ Navigation::NavGoalKind::parkEntrance, Navigation::NavPeepClass::guest,
+                                            RideId::GetNull(), 0, entranceIndex },
+                    chosenDirection);
+            }
+        }
+
         if (chosenDirection == kInvalidDirection)
             return GuestPathfindAimless(peep, edges);
 
@@ -2097,6 +2137,17 @@ namespace OpenRCT2::PathFinding
         GetRideQueueEnd(loc);
 
         direction = ChooseDirection(TileCoordsXYZ{ peep.NextLoc }, loc, peep, true, rideIndex);
+
+        // Note: the old algorithm's goal here is the queue's far end (`loc`, after GetRideQueueEnd
+        // offsets past queue tiles), whereas the navmesh goal table for rideStationEntrance is seeded
+        // at the station's entrance tile itself - divergence logged here reflects that goal-tile
+        // difference too, not just algorithmic disagreement. Refining queue-end fidelity is a
+        // follow-up, not required for Phase A shadow-mode infrastructure.
+        ShadowCompareChooseDirection(
+            peep, TileCoordsXYZ{ peep.NextLoc },
+            Navigation::NavGoalId{ Navigation::NavGoalKind::rideStationEntrance, Navigation::NavPeepClass::guest, rideIndex,
+                                    static_cast<uint8_t>(closestStationNum.ToUnderlying()), 0 },
+            direction);
 
         if (direction == kInvalidDirection)
         {

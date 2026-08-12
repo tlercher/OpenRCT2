@@ -34,8 +34,10 @@ namespace OpenRCT2::Navigation
 
         // A ride entrance/exit's stored direction is the direction a peep must be travelling to walk
         // *into* it (matches GuestPathfinding.cpp:806-807's `direction == testEdge` check). The
-        // approach tile is one step behind that, in the reverse direction.
-        Direction DirectionAwayFrom(Direction facing)
+        // approach tile is one step behind that, in the reverse direction - but a peep standing AT
+        // the approach tile walks `facing` (not its reverse) to reach the goal, so the two directions
+        // serve different purposes: this one only offsets the approach tile from the goal.
+        Direction ApproachOffsetFor(Direction facing)
         {
             return DirectionReverse(facing);
         }
@@ -61,18 +63,18 @@ namespace OpenRCT2::Navigation
                     if (!station.Entrance.IsNull())
                     {
                         TileCoordsXYZ goalLoc{ station.Entrance.x, station.Entrance.y, station.Entrance.z };
-                        Direction approachDirection = DirectionAwayFrom(station.Entrance.direction);
+                        Direction facing = station.Entrance.direction;
                         TileCoordsXYZ approachLoc = goalLoc;
-                        approachLoc += TileDirectionDelta[approachDirection];
-                        terminals.push_back({ approachLoc, approachDirection, goalLoc });
+                        approachLoc += TileDirectionDelta[ApproachOffsetFor(facing)];
+                        terminals.push_back({ approachLoc, facing, goalLoc });
                     }
                     if (!station.Exit.IsNull())
                     {
                         TileCoordsXYZ goalLoc{ station.Exit.x, station.Exit.y, station.Exit.z };
-                        Direction approachDirection = DirectionAwayFrom(station.Exit.direction);
+                        Direction facing = station.Exit.direction;
                         TileCoordsXYZ approachLoc = goalLoc;
-                        approachLoc += TileDirectionDelta[approachDirection];
-                        terminals.push_back({ approachLoc, approachDirection, goalLoc });
+                        approachLoc += TileDirectionDelta[ApproachOffsetFor(facing)];
+                        terminals.push_back({ approachLoc, facing, goalLoc });
                     }
                 }
             }
@@ -84,9 +86,11 @@ namespace OpenRCT2::Navigation
                 TileCoordsXYZ goalLoc{ TileCoordsXYZ(CoordsXYZ{ entrance.x, entrance.y, entrance.z }) };
                 for (Direction dir : kAllDirections)
                 {
+                    // `dir` offsets the approach tile away from the goal; walking back the other way
+                    // (DirectionReverse) is the direction of travel that actually reaches the goal.
                     TileCoordsXYZ approachLoc = goalLoc;
                     approachLoc += TileDirectionDelta[dir];
-                    terminals.push_back({ approachLoc, dir, goalLoc });
+                    terminals.push_back({ approachLoc, DirectionReverse(dir), goalLoc });
                 }
             }
 
@@ -122,7 +126,7 @@ namespace OpenRCT2::Navigation
                         {
                             TileCoordsXYZ approachLoc = goalLoc;
                             approachLoc += TileDirectionDelta[dir];
-                            terminals.push_back({ approachLoc, dir, goalLoc });
+                            terminals.push_back({ approachLoc, DirectionReverse(dir), goalLoc });
                         }
                     }
                 }
