@@ -26,7 +26,7 @@ namespace OpenRCT2::PathFinding
     namespace
     {
         bool gShadowModeEnabled = false;
-        bool gLiveModeEnabled = false;
+        bool gLiveModeEnabled = true;
 
         // Bounded local-search budget for the fallback path (plan §9): only needs to resolve an
         // immediate local ambiguity (a foreign queue or patrol boundary right ahead), the
