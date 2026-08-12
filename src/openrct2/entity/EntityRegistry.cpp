@@ -136,7 +136,7 @@ namespace OpenRCT2
         });
     }
 
-    const std::list<EntityId>& EntityRegistry::GetEntityList(const EntityType id)
+    const std::vector<EntityId>& EntityRegistry::GetEntityList(const EntityType id)
     {
         return gEntityLists[EnumValue(id)];
     }
