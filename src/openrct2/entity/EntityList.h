@@ -15,7 +15,6 @@
 #include "EntityBase.h"
 #include "EntityRegistry.h"
 
-#include <list>
 #include <vector>
 
 namespace OpenRCT2
@@ -101,12 +100,12 @@ namespace OpenRCT2
     class EntityListIterator
     {
     private:
-        std::list<EntityId>::const_iterator iter;
-        std::list<EntityId>::const_iterator end;
+        std::vector<EntityId>::const_iterator iter;
+        std::vector<EntityId>::const_iterator end;
         T* Entity = nullptr;
 
     public:
-        EntityListIterator(std::list<EntityId>::const_iterator _iter, std::list<EntityId>::const_iterator _end)
+        EntityListIterator(std::vector<EntityId>::const_iterator _iter, std::vector<EntityId>::const_iterator _end)
             : iter(_iter)
             , end(_end)
         {
@@ -157,7 +156,7 @@ namespace OpenRCT2
     {
     private:
         using EntityListIterator_t = EntityListIterator<T>;
-        const std::list<EntityId>& vec;
+        const std::vector<EntityId>& vec;
 
     public:
         EntityList()

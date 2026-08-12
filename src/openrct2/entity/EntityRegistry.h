@@ -14,7 +14,6 @@
 #include "EntityBase.h"
 
 #include <array>
-#include <list>
 #include <string>
 #include <vector>
 
@@ -55,7 +54,12 @@ namespace OpenRCT2
     {
     private:
         Entity_t entities[kMaxEntities]{};
-        std::array<std::list<EntityId>, EnumValue(EntityType::count)> gEntityLists;
+        // Contiguous, not std::list: iterating this every tick (UpdateEntitiesSpatialIndex) walking
+        // linked-list nodes scattered across the heap was the single largest L1D-cache-miss
+        // contributor in the game. Kept sorted by id (see AddToEntityList) to preserve multiplayer
+        // determinism, same as before - insert/erase are still O(n) but as a cheap contiguous memmove
+        // instead of a node search, and binaryFind's lower_bound becomes real O(log n).
+        std::array<std::vector<EntityId>, EnumValue(EntityType::count)> gEntityLists;
         std::vector<EntityId> _freeIdList;
 
         bool _entityFlashingList[kMaxEntities];
@@ -125,7 +129,7 @@ namespace OpenRCT2
             return static_cast<T*>(CreateEntityAt(index, T::cEntityType));
         }
 
-        const std::list<EntityId>& GetEntityList(EntityType id);
+        const std::vector<EntityId>& GetEntityList(EntityType id);
         uint16_t GetMiscEntityCount();
 
         void ResetAllEntities();
